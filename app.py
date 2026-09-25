@@ -1,3 +1,4 @@
+import time
 from os import times
 from flask import Flask, render_template, request, redirect, url_for, flash
 from sqlalchemy import select, Time, Jogadores
@@ -113,6 +114,12 @@ def listar_partidas():
 
     return render_template("partidas.html", partidas=[], times=[])
 
+@app.route("/time/id_time")
+def detalhes_time():
+
+    jogadores = []
+    partidas = []
+    return render_template("time_detalhes.html", time=time, jogadores=jogadores)
 
 @app.route("/partidas/nova", methods=["GET", "POST"])
 def nova_partida():

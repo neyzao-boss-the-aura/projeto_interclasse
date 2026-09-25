@@ -55,6 +55,7 @@
                         {%for time in times%}
                             <tr>
                                 <td>{{ time.id }}</td>
+                                <td> <a href="{{ url_for('detalhes_time', id_time=time.id)}}"> </a> </td>
                                 <td>{{ time.nome }}</td>
                                 <td>{{ time.turma }}</td>
                                 <td>{{ time.responsavel}}</td>

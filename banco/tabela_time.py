@@ -1,5 +1,6 @@
 from flask import flash
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from database import *
 
@@ -23,3 +24,9 @@ def salvar_time(nome, turma, responsavel):
             db_session.rollback()
             flash("Ocorreu um erro, digite novamente", "error")
             print(f"Ocorreu um erro: {e}")
+
+def select_um(id_time):
+    time_sql = select(Time).where(Time.id == id_time)
+    time = db_session.execute(time_sql).scalar_one_or_none()
+    return time
+print(select_um(6))
