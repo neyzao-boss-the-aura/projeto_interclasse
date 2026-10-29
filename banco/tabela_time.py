@@ -29,4 +29,3 @@ def select_um(id_time):
     time_sql = select(Time).where(Time.id == id_time)
     time = db_session.execute(time_sql).scalar_one_or_none()
     return time
-print(select_um(6))

@@ -1,4 +1,8 @@
+from flask import flash, render_template
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
+
+from database import Jogador, db_session, Time
 
 
 def select_todos():
@@ -25,3 +29,14 @@ def salvar_jogador(nome, jogador):
         db_session.rollback()
         flash("OCORREU UM ERRO, DIGITE NOVAMENTE", "error")
         print(f"OCORREU UM ERRO: {e}")
+
+def select_um(id_jogador):
+    jogador_sql = select(Jogador).where(Jogador.id == id_jogador)
+    jogador = db_session.execute(jogador_sql).scalar_one_or_none()
+    return jogador
+
+
+def trazer_jogadores_time(time_id):
+    jogadores_time_sql = select(Jogador).where(Jogador.time_id == time_id)
+    jogadores_time = db_session.execute(jogadores_time_sql).scalar_one_or_none()
+    return jogadores_time
