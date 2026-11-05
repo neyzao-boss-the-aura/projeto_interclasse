@@ -4,12 +4,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from database import Jogador, db_session, Time
 
-
 def select_todos():
     # 1- Pegar os valores digitados no formulário
-    jogadores_sql = select(Jogador)
+    jogadores_sql = select(Jogador, Time).join(Time, Jogador.time_id == Time.id)
     # 2- Executar o select
-    jogadores = db_session.execute(jogadores_sql).scalars().all()
+    jogadores = db_session.execute(jogadores_sql).all()
 
     # 1- Pegar os valores digitados no formulário
     times_sql = select(Time)

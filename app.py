@@ -5,7 +5,7 @@ from sqlalchemy import select, Time, Jogadores
 from sqlalchemy.exc import SQLAlchemyError
 
 from database import *
-from banco import tabela_partida, tabela_time, tabela_jogador
+from banco import tabela_partida, tabela_time, tabela_jogador, tabela_movimentacao
 
 app = Flask(__name__)
 app.secret_key = "chave-secreta-interclasse-2026"
@@ -31,9 +31,9 @@ def dashboard():
 @app.route("/jogadores")
 def listar_jogadores():
     # 1- Pegar os valores digitados no formulário
-    jogadores_sql = select(Jogador)
+    jogadores_sql = select(Jogador, Time).join(Time, Jogador.time_id == Time.id)
     # 2- Executar o select
-    jogadores = db_session.execute(jogadores_sql).scalars().all()
+    jogadores = db_session.execute(jogadores_sql).all()
     return render_template("jogadores.html", jogadores=jogadores)
 
 
@@ -65,8 +65,8 @@ def novo_jogador():
     # 1- Pegar os valores digitados no formulário
     jogadores_sql = select(Jogador)
     # 2- Executar o select
-    tabela_jogador.salvar(db_session.execute(jogadores_sql)).scalars().all()
-    tabela_time.salvar(nome=nome, turma=turma, responsavel=responsavel)
+    tabela_jogador.salvar_jogador(db_session.execute(jogadores_sql)).scalars().all()
+    tabela_jogador.salvar_jogador(nome=nome, turma=turma, responsavel=responsavel)
     # 1- Pegar os valores digitados no formulário
     times_sql = select(Time)
     # 2- Executar o select
@@ -185,6 +185,34 @@ def nova_partida():
     times = tabela_time.select_todos()
 
     return render_template("partidas.html", partidas=partidas, times=times)
+
+@app.route("/movimentacao/nova<int:jogador_id>", methods=["GET", "POST"])
+
+@app.route("/movimentacao/nova", methods=["GET", "POST"])
+def nova_movimentacao(jogador_id=None):
+    if request.method == "POST":
+        jogador_id = request.form.get("jogador_id")
+        time_destino_id = request.form.get("time_destino_id")
+
+        if not jogador_id:
+            flash("preencha o jogador id", "error")
+            return render_template("movimentacao.html")
+        if not time_destino_id:
+            flash("preencha o time destino id", "error")
+            return render_template("movimentacao.html")
+
+        tabela_movimentacao.salvar_movimentacao(jogador_id, time_destino_id)
+        return redirect(url_for("nova_movimentacao"))
+    # Carregar dados para movimentação
+    movimentacoes = tabela_movimentacao.select_todos()
+    jogadores = tabela_jogador.select_todos()
+    times = tabela_time.select_todos()
+
+    return render_template(
+        "movimentacoes.html",
+        movimentacoes=movimentacoes,
+        jogadores=jogadores,
+        times=times)
 
 if __name__ == "__main__":
     app.run(debug=True)

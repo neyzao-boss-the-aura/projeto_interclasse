@@ -7,11 +7,11 @@ from database import *
 def select_todos():
     # Buscar todos os times no banco
     # 1- Montar o select
-    partidas_sql = select(Partida)
+    times_sql = select(Time)
     # 2- Executar o select
-    partidas = db_session.execute(partidas_sql).scalars().all()
+    times = db_session.execute(times_sql).scalars().all()
 
-    return partidas
+    return times
 
 def salvar_time(nome, turma, responsavel):
     #3- Salvar no banco de dados
