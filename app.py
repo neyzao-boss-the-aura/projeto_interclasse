@@ -3,15 +3,93 @@ from os import times
 from flask import Flask, render_template, request, redirect, url_for, flash
 from sqlalchemy import select, Time, Jogadores
 from sqlalchemy.exc import SQLAlchemyError
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from sqlalchemy.testing.pickleable import User
 
 from database import *
 from banco import tabela_partida, tabela_time, tabela_jogador, tabela_movimentacao
 
 app = Flask(__name__)
+#secret_key aqui apenas momento de criação, em produção deve ser protegida
 app.secret_key = "chave-secreta-interclasse-2026"
 
+#Configurar Flask-login
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+login_manager.login_message = "Faça login para acessar"
+
+#Prevenir gargalo "too many connections"
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()
+
+#Carregar informações do usuário logado
+@login_manager.user_loader
+def load_user(user_id):
+    return db_session.get(Usuario, int(user_id))
+
+#Interface de autenticação
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        password = request.form.get("senha", "").strip()
+
+        usuario_sql = select(Usuario).where(Usuario.email == email)
+        usuario_resultado = db_session.execute(usuario_sql).scalar()
+
+        if not usuario_resultado:
+            flash("Falha ao autenticar", "error")
+            return render_template("login.html")
+
+        if usuario_resultado and usuario_resultado.check_password(password):
+            login_user(usuario_resultado)
+            return redirect(url_for("dashboard"))
+
+    return render_template(
+        "login.html",
+    registro= request.args.get("registro") == 'True'
+    )
+
+@app.route("/registro", methods=["GET", "POST"])
+def registro():
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+        email = request.form.get("email", "").strip()
+        senha = request.form.get("senha", "").strip()
+
+        if not nome and not email and not senha :
+            flash("PREENCHA OS CAMPOS", "error")
+            return redirect (url_for("registro"))
+
+        usuario_sql = select(Usuario).where (Usuario.email == email)
+        usuario_email = db_session.execute(usuario_sql).scalars().all()
+
+        if usuario_email:
+            flash("Email já cadastrado")
+            return redirect (url_for("registro"))
+        try:
+            novo_usuario = Usuario(
+                nome=nome,
+                email=email)
+
+            novo_usuario.set_password(senha)
+            db_session.add(novo_usuario)
+            db_session.commit()
+            flash("Usuario cadastrado com sucesso", "success")
+
+        except SQLAlchemyError as e:
+            print(f"SQLAlchemyError: {e}")
+            flash("Erro no banco")
+            pass
+        except Exception as e:
+            print(f"Erro ao registrar: {e}")
+            flash("Erro ao registrar", "error")
+            return redirect (url_for("registro"))
+        return render_template("login.html")
 
 @app.route("/")
+@login_required
 def dashboard():
     # 1- Pegar os valores digitados no formulário
     times_sql = select(Time)
@@ -186,10 +264,10 @@ def nova_partida():
 
     return render_template("partidas.html", partidas=partidas, times=times)
 
-@app.route("/movimentacao/nova<int:jogador_id>", methods=["GET", "POST"])
+@app.route("/movimentacao/nova<int:id_jogador>", methods=["GET", "POST"])
 
 @app.route("/movimentacao/nova", methods=["GET", "POST"])
-def nova_movimentacao(jogador_id=None):
+def nova_movimentacao(id_jogador=None):
     if request.method == "POST":
         jogador_id = request.form.get("jogador_id")
         time_destino_id = request.form.get("time_destino_id")
@@ -212,7 +290,9 @@ def nova_movimentacao(jogador_id=None):
         "movimentacoes.html",
         movimentacoes=movimentacoes,
         jogadores=jogadores,
-        times=times)
+        times=times,
+        jogador_selecionado_id=id_jogador)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
